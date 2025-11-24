@@ -2075,13 +2075,10 @@
             container.innerHTML = musicList.map((track, index) => `
                 <div class="music-track-item" data-type="${type}" data-index="${index}" 
                      onclick="handleTrackClick('${type}', ${index})" 
-                     onmousedown="handleTrackMouseDown('${type}', ${index})" 
-                     onmouseup="handleTrackMouseUp()" 
-                     ontouchstart="handleTrackMouseDown('${type}', ${index})" 
-                     ontouchend="handleTrackMouseUp()">
+                     ondblclick="handleTrackDoubleClick('${type}', ${index})">
                     <div class="music-track-info">
                         <h4>${index + 1}. ${track.title}</h4>
-                        <p>클릭: 선택/선택해제 | 길게 클릭: 재생</p>
+                        <p>클릭: 선택/선택해제 | 더블클릭: 재생</p>
                     </div>
                     <div style="font-size: 1.5rem;">🎵</div>
                 </div>
@@ -2096,48 +2093,40 @@
         let currentPlaylistIndex = -1;
         let currentPlaylistType = '';
 
-        // 클릭/길게 클릭 이벤트 처리
+        // 클릭/더블클릭 이벤트 처리
         let clickTimer = null;
-        let longPressTimer = null;
-        let isLongPress = false;
         
         function handleTrackClick(type, index) {
-            // 일반 클릭 처리
-            clickTimer = setTimeout(() => {
-                if (!isLongPress) {
-                    toggleTrackSelection(type, index);
-                }
+            // 더블클릭 감지를 위해 짧은 지연
+            if (clickTimer) {
+                clearTimeout(clickTimer);
                 clickTimer = null;
-            }, 200);
+                return; // 더블클릭으로 처리됨
+            }
+            
+            clickTimer = setTimeout(() => {
+                toggleTrackSelection(type, index);
+                clickTimer = null;
+            }, 300);
         }
         
-        function handleTrackMouseDown(type, index) {
+        function handleTrackDoubleClick(type, index) {
+            // 더블클릭 시 타이머 취소
+            if (clickTimer) {
+                clearTimeout(clickTimer);
+                clickTimer = null;
+            }
+            
             const trackItem = document.querySelector(`.music-track-item[data-type="${type}"][data-index="${index}"]`);
             if (!trackItem) return;
             
             const isSelected = trackItem.classList.contains('selected');
-            if (!isSelected) return; // 선택되지 않은 곡은 길게 클릭 무시
+            const selectedIndices = selectedTracks[type];
             
-            isLongPress = false;
-            longPressTimer = setTimeout(() => {
-                isLongPress = true;
-                if (clickTimer) {
-                    clearTimeout(clickTimer);
-                    clickTimer = null;
-                }
-                // 선택된 곡들을 바로 재생
+            // 선택된 곡이 있으면 재생
+            if (isSelected && selectedIndices.length > 0) {
                 startPlaylist(type);
-            }, 500); // 0.5초 길게 클릭
-        }
-        
-        function handleTrackMouseUp() {
-            if (longPressTimer) {
-                clearTimeout(longPressTimer);
-                longPressTimer = null;
             }
-            setTimeout(() => {
-                isLongPress = false;
-            }, 100);
         }
         
         // 곡 선택 토글
