@@ -219,6 +219,25 @@
             font-size: 14px;
         }
 
+        .image-loading-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px 40px;
+            border-radius: 20px;
+            font-size: 18px;
+            z-index: 1002;
+            display: none;
+        }
+
+        .image-loading-message.show {
+            display: block;
+        }
+
         .zoom-controls {
             position: absolute;
             top: 20px;
@@ -807,6 +826,30 @@
             background: rgba(139, 109, 152, 0.7);
         }
 
+        .track-context-menu {
+            position: fixed;
+            background: rgba(109, 89, 122, 0.95);
+            border: 2px solid rgba(200, 175, 215, 0.5);
+            border-radius: 15px;
+            padding: 10px 0;
+            z-index: 1000;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            min-width: 150px;
+        }
+
+        .track-menu-item {
+            padding: 12px 20px;
+            color: #f5e6d3;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 1rem;
+        }
+
+        .track-menu-item:hover {
+            background: rgba(184, 134, 86, 0.3);
+            color: #fff8e7;
+        }
+
         .current-track-display {
             margin: 10px 0;
             padding: 10px 0;
@@ -1014,7 +1057,7 @@
                             📅 구글 캘린더에 추가하기
                         </button>
                         
-                        <button class="calendar-button" onclick="window.open('https://naver.me/xoHihhlk', '_blank')" style="background: #8b6f9c">
+                        <button class="calendar-button" onclick="window.open('https://map.naver.com/v5/search/성남미디어센터', '_blank')" style="background: #8b6f9c">
                             🗺️ 지도보기
                         </button>
                     </div>
@@ -1023,8 +1066,8 @@
                 <div style="margin-top: 30px;">
                     <h3>성남아트센터 큐브플라자 1층 사랑방 안내</h3>
                     <p>성남아트센터는 경기도 성남시 분당구에 위치한 종합예술공연장입니다. 
-                    큐브플라자 1층 사랑방은 입구의 계단에서 오른쪽 첫번째 건물 내에 위치해 있습니다.</p>
-                    <p>지상 주차장에서 가장 가까운  건물입니다.</p>
+                    큐브플라자 1층 사랑방은 입구의 계단에서 오른쪽 첫번째 건물 내에 위치해 있습니다.
+                    지상 주차장에서 가장 가까운  건물입니다.</p>
                     <br>
                     
                     <h4>교통편 안내</h4>
@@ -1197,7 +1240,7 @@
                     </div>
                     
                     <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-                        <button class="phone-button" onclick="window.location.href='tel:010-7166-1990'">
+                        <button class="phone-button" onclick="window.location.href='tel:010-2940-1827'">
                             📞 전화걸기
                         </button>
                         <button class="phone-button" onclick="copyPhoneNumber()">
@@ -1306,6 +1349,8 @@
         
         <div class="zoom-indicator" id="zoomIndicator">100%</div>
         
+        <div class="image-loading-message" id="imageLoadingMessage">잠시만 기다려주세요...</div>
+        
         <div class="image-modal-content" onclick="event.stopPropagation()">
             <img id="modalImage" src="" alt="">
             <div class="image-modal-info">
@@ -1359,7 +1404,7 @@
 
         // 전화번호 복사 기능
         function copyPhoneNumber() {
-            const phoneNumber = '010-7166-1990';
+            const phoneNumber = '010-2940-1827';
             navigator.clipboard.writeText(phoneNumber).then(() => {
                 alert('전화번호가 클립보드에 복사되었습니다!');
             }).catch(() => {
@@ -1416,20 +1461,30 @@
             const modalImg = document.getElementById('modalImage');
             const modalInfo = document.getElementById('modalImageInfo');
             const zoomIndicator = document.getElementById('zoomIndicator');
+            const loadingMessage = document.getElementById('imageLoadingMessage');
             
             // 줌 초기화
             currentZoom = 1;
             updateZoomDisplay();
+            
+            // 모달 표시 및 로딩 메시지 표시
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden'; // 스크롤 방지
+            if (loadingMessage) {
+                loadingMessage.classList.add('show');
+            }
             
             // 이미지 정보 설정
             modalImg.src = imgElement.src;
             modalImg.alt = imgElement.alt;
             modalInfo.textContent = imgElement.alt;
             
-            // 이미지 로딩 완료 후 모달 표시
+            // 이미지 로딩 완료 후 처리
             modalImg.onload = function() {
-                modal.style.display = 'block';
-                document.body.style.overflow = 'hidden'; // 스크롤 방지
+                // 로딩 메시지 숨기기
+                if (loadingMessage) {
+                    loadingMessage.classList.remove('show');
+                }
                 
                 // 이미지 크기에 따라 모달 컨테이너 크기 조정
                 const modalContent = document.querySelector('.image-modal-content');
@@ -1486,9 +1541,17 @@
             
             // 이미지 로딩 실패 시에도 모달 표시
             modalImg.onerror = function() {
-                modal.style.display = 'block';
-                document.body.style.overflow = 'hidden';
+                if (loadingMessage) {
+                    loadingMessage.classList.remove('show');
+                }
             };
+            
+            // 이미지가 이미 로드되어 있는 경우 (캐시된 경우)
+            if (modalImg.complete && modalImg.naturalWidth > 0) {
+                if (loadingMessage) {
+                    loadingMessage.classList.remove('show');
+                }
+            }
         }
 
         // 이미지 모달 닫기
@@ -2010,10 +2073,15 @@
             
             const musicList = archiveData[type];
             container.innerHTML = musicList.map((track, index) => `
-                <div class="music-track-item" data-type="${type}" data-index="${index}" onclick="handleTrackClick('${type}', ${index})" ondblclick="handleTrackDoubleClick('${type}', ${index})">
+                <div class="music-track-item" data-type="${type}" data-index="${index}" 
+                     onclick="handleTrackClick('${type}', ${index})" 
+                     onmousedown="handleTrackMouseDown('${type}', ${index})" 
+                     onmouseup="handleTrackMouseUp()" 
+                     ontouchstart="handleTrackMouseDown('${type}', ${index})" 
+                     ontouchend="handleTrackMouseUp()">
                     <div class="music-track-info">
                         <h4>${index + 1}. ${track.title}</h4>
-                        <p>클릭: 선택/재생 | 더블클릭: 선택해제</p>
+                        <p>클릭: 선택/선택해제 | 길게 클릭: 재생</p>
                     </div>
                     <div style="font-size: 1.5rem;">🎵</div>
                 </div>
@@ -2028,42 +2096,48 @@
         let currentPlaylistIndex = -1;
         let currentPlaylistType = '';
 
-        // 클릭 이벤트 처리 (더블클릭 방지용)
+        // 클릭/길게 클릭 이벤트 처리
         let clickTimer = null;
+        let longPressTimer = null;
+        let isLongPress = false;
         
         function handleTrackClick(type, index) {
-            // 더블클릭 감지를 위해 짧은 지연
-            if (clickTimer) {
-                clearTimeout(clickTimer);
-                clickTimer = null;
-                return; // 더블클릭으로 처리됨
-            }
-            
+            // 일반 클릭 처리
             clickTimer = setTimeout(() => {
-                toggleTrackSelection(type, index);
+                if (!isLongPress) {
+                    toggleTrackSelection(type, index);
+                }
                 clickTimer = null;
-            }, 300);
+            }, 200);
         }
         
-        // 더블클릭 이벤트 처리
-        function handleTrackDoubleClick(type, index) {
-            if (clickTimer) {
-                clearTimeout(clickTimer);
-                clickTimer = null;
-            }
-            
+        function handleTrackMouseDown(type, index) {
             const trackItem = document.querySelector(`.music-track-item[data-type="${type}"][data-index="${index}"]`);
             if (!trackItem) return;
             
             const isSelected = trackItem.classList.contains('selected');
-            if (isSelected) {
-                // 선택 해제
-                trackItem.classList.remove('selected');
-                const indexInArray = selectedTracks[type].indexOf(index);
-                if (indexInArray > -1) {
-                    selectedTracks[type].splice(indexInArray, 1);
+            if (!isSelected) return; // 선택되지 않은 곡은 길게 클릭 무시
+            
+            isLongPress = false;
+            longPressTimer = setTimeout(() => {
+                isLongPress = true;
+                if (clickTimer) {
+                    clearTimeout(clickTimer);
+                    clickTimer = null;
                 }
+                // 선택된 곡들을 바로 재생
+                startPlaylist(type);
+            }, 500); // 0.5초 길게 클릭
+        }
+        
+        function handleTrackMouseUp() {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
             }
+            setTimeout(() => {
+                isLongPress = false;
+            }, 100);
         }
         
         // 곡 선택 토글
@@ -2075,9 +2149,11 @@
             const selectedIndices = selectedTracks[type];
             
             if (isSelected) {
-                // 이미 선택된 곡을 클릭한 경우 - 재생 시작
-                if (selectedIndices.length > 0) {
-                    startPlaylist(type);
+                // 이미 선택된 곡을 클릭한 경우 - 선택 해제
+                trackItem.classList.remove('selected');
+                const indexInArray = selectedIndices.indexOf(index);
+                if (indexInArray > -1) {
+                    selectedIndices.splice(indexInArray, 1);
                 }
             } else {
                 // 선택되지 않은 곡을 클릭한 경우 - 선택 추가
@@ -2086,6 +2162,72 @@
                     selectedIndices.push(index);
                 }
             }
+        }
+        
+        // 곡 메뉴 표시
+        function showTrackMenu(type, index, trackItem) {
+            // 기존 메뉴 제거
+            const existingMenu = document.querySelector('.track-context-menu');
+            if (existingMenu) {
+                existingMenu.remove();
+            }
+            
+            // 메뉴 생성
+            const menu = document.createElement('div');
+            menu.className = 'track-context-menu';
+            menu.innerHTML = `
+                <div class="track-menu-item" onclick="startPlaylist('${type}'); closeTrackMenu();">재생</div>
+                <div class="track-menu-item" onclick="clearAllSelections('${type}'); closeTrackMenu();">전체 선택해제</div>
+            `;
+            
+            // 메뉴 위치 설정
+            const rect = trackItem.getBoundingClientRect();
+            menu.style.top = (rect.bottom + 5) + 'px';
+            menu.style.left = rect.left + 'px';
+            
+            document.body.appendChild(menu);
+            
+            // 메뉴 외부 클릭 시 닫기
+            setTimeout(() => {
+                document.addEventListener('click', closeTrackMenuOnClick, true);
+            }, 10);
+        }
+        
+        function closeTrackMenu() {
+            const menu = document.querySelector('.track-context-menu');
+            if (menu) {
+                menu.remove();
+            }
+            document.removeEventListener('click', closeTrackMenuOnClick, true);
+        }
+        
+        function closeTrackMenuOnClick(event) {
+            const menu = document.querySelector('.track-context-menu');
+            if (menu && !menu.contains(event.target)) {
+                closeTrackMenu();
+            }
+        }
+        
+        // 전체 선택 해제
+        function clearAllSelections(type) {
+            selectedTracks[type].forEach(index => {
+                const trackItem = document.querySelector(`.music-track-item[data-type="${type}"][data-index="${index}"]`);
+                if (trackItem) {
+                    trackItem.classList.remove('selected');
+                }
+            });
+            selectedTracks[type] = [];
+        }
+        
+        // 요소가 화면에 보이는지 확인
+        function isElementInViewport(el) {
+            const rect = el.getBoundingClientRect();
+            return (
+                rect.top >= 0 &&
+                rect.left >= 0 &&
+                rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+                rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+            );
         }
 
         // 선택된 곡 리스트 재생 시작
@@ -2177,8 +2319,8 @@
                     item.classList.toggle('playing', itemIndex === index);
                 });
                 
-                // 플레이어 위치로 스크롤 이동 (첫 곡만)
-                if (currentPlaylistIndex === 0) {
+                // 플레이어 위치로 스크롤 이동 (첫 곡이거나 플레이어가 보이지 않을 때)
+                if (currentPlaylistIndex === 0 || !isElementInViewport(playerContainer)) {
                     setTimeout(() => {
                         playerContainer.scrollIntoView({ 
                             behavior: 'smooth', 
